@@ -36,10 +36,10 @@ class TextDataset(Dataset):
         pass
 
     def __len__(self):
-        pass
+        return len(self.captions)
 
     def __getitem__(self, index: int):
-        pass
+        return index, self.captions[index]["caption"]
 
 
 def load_model(device):
@@ -70,6 +70,8 @@ if __name__ == "__main__":
     text_dataset = TextDataset(root_path=TEXT_ROOT)
 
     # extract text feature
+    for text_id, text in tqdm(text_dataset):
+        pass
 
     # extract image feature
     for image_path, image in tqdm(image_dataset):
