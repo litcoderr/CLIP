@@ -8,7 +8,7 @@
             "name": "extract",
             "type": "python",
             "request": "launch",
-            "module": "task.extract_clip_feat",
+            "module": "preprocess.extract_clip_feat",
             "justMyCode": true
         }
     ]
