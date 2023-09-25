@@ -5,7 +5,7 @@
             "name": "extract",
             "type": "python",
             "request": "launch",
-            "module": "preprocess.extract_clip_feat",
+            "module": "extract_moma",
             "justMyCode": true
         }
     ]

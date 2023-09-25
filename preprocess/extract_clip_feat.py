@@ -79,7 +79,6 @@ if __name__ == "__main__":
     # load model
     model, preprocess = load_model(device)
 
-    """
     # define datasets
     def image_collate(batch):
         image_paths = []
@@ -96,8 +95,8 @@ if __name__ == "__main__":
                                   shuffle=False,
                                   collate_fn=image_collate,
                                   drop_last=False)
-    """
 
+    """
     def text_collate(batch):
         text_ids = []
         texts = []
@@ -114,8 +113,8 @@ if __name__ == "__main__":
                                  shuffle=False,
                                  collate_fn=text_collate,
                                  drop_last=False)
-
     """
+
     # extract image feature
     for image_paths, image in tqdm(image_dataloader, desc="Extracting image features"):
         image = image.to(device)
@@ -137,8 +136,8 @@ if __name__ == "__main__":
 
             with open(image_feat_path, 'wb') as f:
                 np.save(f, image_feat[idx])
-    """
 
+    """
     # extract text feature
     for text_ids, text_token in tqdm(text_dataloader, desc="Extracting text features"):
         text_token = text_token.to(device)
@@ -153,3 +152,4 @@ if __name__ == "__main__":
 
             with open(text_feat_path, 'wb') as f:
                 np.save(f, text_feat[idx])
+    """
