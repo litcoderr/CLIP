@@ -33,13 +33,12 @@ class TextDataset(Dataset):
         with open(self.root_path / "MSR_VTT.json", "r") as f:
             self.json = json.load(f)
         self.captions = self.json["annotations"]
-        pass
 
     def __len__(self):
         return len(self.captions)
 
     def __getitem__(self, index: int):
-        return index, self.captions[index]["caption"]
+        return self.captions[index]["id"], self.captions[index]["caption"]
 
 
 def load_model(device):
@@ -56,7 +55,7 @@ if __name__ == "__main__":
     TEXT_ROOT = DATASET_ROOT / "annotation"
 
     # featrue path
-    FEAT_ROOT = DATASET_ROOT / "feat"
+    FEAT_ROOT = DATASET_ROOT / "feat" / "clip"
     FEAT_IMAGE_ROOT = FEAT_ROOT / "image"
     FEAT_TEXT_ROOT = FEAT_ROOT / "text"
     FEAT_IMAGE_ROOT.mkdir(parents=True, exist_ok=True)
@@ -80,6 +79,7 @@ if __name__ == "__main__":
     # load model
     model, preprocess = load_model(device)
 
+    """
     # define datasets
     def image_collate(batch):
         image_paths = []
@@ -96,6 +96,7 @@ if __name__ == "__main__":
                                   shuffle=False,
                                   collate_fn=image_collate,
                                   drop_last=False)
+    """
 
     def text_collate(batch):
         text_ids = []
@@ -114,6 +115,7 @@ if __name__ == "__main__":
                                  collate_fn=text_collate,
                                  drop_last=False)
 
+    """
     # extract image feature
     for image_paths, image in tqdm(image_dataloader, desc="Extracting image features"):
         image = image.to(device)
@@ -135,6 +137,7 @@ if __name__ == "__main__":
 
             with open(image_feat_path, 'wb') as f:
                 np.save(f, image_feat[idx])
+    """
 
     # extract text feature
     for text_ids, text_token in tqdm(text_dataloader, desc="Extracting text features"):
