@@ -2,10 +2,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "extract",
+            "name": "test",
             "type": "python",
             "request": "launch",
-            "module": "preprocess.extract_clip_feat",
+            "module": "test",
             "justMyCode": true
         }
     ]

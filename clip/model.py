@@ -182,14 +182,23 @@ class ResidualAttentionBlock(nn.Module):
         self.ln_2 = LayerNorm(d_model)
         self.attn_mask = attn_mask
 
-    def attention(self, x: torch.Tensor):
+    def attention(self, x: torch.Tensor, need_weights=False):
         self.attn_mask = self.attn_mask.to(dtype=x.dtype, device=x.device) if self.attn_mask is not None else None
-        return self.attn(x, x, x, need_weights=False, attn_mask=self.attn_mask)[0]
+        if need_weights:
+            return self.attn(x, x, x, attn_mask=self.attn_mask) # Tuple[output, attn_weights]
+        else:
+            return self.attn(x, x, x, need_weights=need_weights, attn_mask=self.attn_mask)[0] # output
 
-    def forward(self, x: torch.Tensor):
-        x = x + self.attention(self.ln_1(x))
-        x = x + self.mlp(self.ln_2(x))
-        return x
+    def forward(self, x: torch.Tensor, need_weights=False):
+        if need_weights:
+            attn_output, attn_weight = self.attention(self.ln_1(x), need_weights=need_weights)
+            x = x + attn_output
+            x = x + self.mlp(self.ln_2(x))
+            return x, attn_weight
+        else:
+            x = x + self.attention(self.ln_1(x))
+            x = x + self.mlp(self.ln_2(x))
+            return x
 
 
 class Transformer(nn.Module):
@@ -199,8 +208,18 @@ class Transformer(nn.Module):
         self.layers = layers
         self.resblocks = nn.Sequential(*[ResidualAttentionBlock(width, heads, attn_mask) for _ in range(layers)])
 
-    def forward(self, x: torch.Tensor):
-        return self.resblocks(x)
+    def forward(self, x: torch.Tensor, need_weights=False):
+        weights = []
+        for block in self.resblocks._modules.values():
+            if need_weights:
+                x, weight = block(x, need_weights=True) # weight [b, Q, V]
+                weights.append(weight.to('cpu'))
+            else:
+                x = block(x)
+        if need_weights: 
+            return x, weights
+        else:
+            return x, None
 
 
 class VisionTransformer(nn.Module):
@@ -220,7 +239,7 @@ class VisionTransformer(nn.Module):
         self.ln_post = LayerNorm(width)
         self.proj = nn.Parameter(scale * torch.randn(width, output_dim))
 
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor, need_weights=False):
         x = self.conv1(x)  # shape = [*, width, grid, grid]
         x = x.reshape(x.shape[0], x.shape[1], -1)  # shape = [*, width, grid ** 2]
         x = x.permute(0, 2, 1)  # shape = [*, grid ** 2, width]
@@ -229,7 +248,7 @@ class VisionTransformer(nn.Module):
         x = self.ln_pre(x)
 
         x = x.permute(1, 0, 2)  # NLD -> LND
-        x = self.transformer(x)
+        x, weights = self.transformer(x, need_weights)
         x = x.permute(1, 0, 2)  # LND -> NLD
 
         x = self.ln_post(x[:, 0, :])
@@ -237,7 +256,10 @@ class VisionTransformer(nn.Module):
         if self.proj is not None:
             x = x @ self.proj
 
-        return x
+        if need_weights:
+            return x, weights
+        else:
+            return x
 
 
 class CLIP(nn.Module):
@@ -337,15 +359,15 @@ class CLIP(nn.Module):
     def dtype(self):
         return self.visual.conv1.weight.dtype
 
-    def encode_image(self, image):
-        return self.visual(image.type(self.dtype))
+    def encode_image(self, image, need_weights=False):
+        return self.visual(image.type(self.dtype), need_weights=need_weights)
 
     def encode_text(self, text):
         x = self.token_embedding(text).type(self.dtype)  # [batch_size, n_ctx, d_model]
 
         x = x + self.positional_embedding.type(self.dtype)
         x = x.permute(1, 0, 2)  # NLD -> LND
-        x = self.transformer(x)
+        x, _ = self.transformer(x)
         x = x.permute(1, 0, 2)  # LND -> NLD
         x = self.ln_final(x).type(self.dtype)
 
